@@ -1,0 +1,44 @@
+import { ClerkResource } from "./resource.js";
+import { PhoneCodeChannel } from "./phoneCodeChannel.js";
+import { AuthConfigJSONSnapshot } from "./snapshots.js";
+
+//#region src/types/authConfig.d.ts
+interface AuthConfigResource extends ClerkResource {
+  /**
+   * Enabled single session configuration at the instance level.
+   */
+  singleSessionMode: boolean;
+  /**
+   * Timestamp of when the instance was claimed. This only applies to applications created with the Keyless mode.
+   *
+   * @default null
+   */
+  claimedAt: Date | null;
+  /**
+   * Whether Reverification is enabled at the instance level.
+   */
+  reverification: boolean;
+  /**
+   * Preferred channels for phone code providers.
+   */
+  preferredChannels: Record<string, PhoneCodeChannel> | null;
+  sessionMinter: boolean;
+  /**
+   * Native application settings, such as trusted device (biometric) sign-in.
+   * @experimental
+   */
+  nativeSettings: NativeSettingsResource | null;
+  __internal_toSnapshot: () => AuthConfigJSONSnapshot;
+}
+/**
+ * @experimental
+ */
+interface NativeSettingsResource {
+  apiEnabled: boolean;
+  trustedDeviceSignInEnabled: boolean;
+  trustedDeviceEnrollmentPromptAfterSignInEnabled: boolean;
+  trustedDeviceEnrollmentPromptAfterSignUpEnabled: boolean;
+}
+//#endregion
+export { AuthConfigResource, NativeSettingsResource };
+//# sourceMappingURL=authConfig.d.ts.map

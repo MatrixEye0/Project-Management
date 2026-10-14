@@ -1,0 +1,13 @@
+//#region src/types/elementIds.d.ts
+type AlertId = 'danger' | 'warning' | 'info';
+type FieldId = 'firstName' | 'lastName' | 'name' | 'slug' | 'emailAddress' | 'phoneNumber' | 'currentPassword' | 'newPassword' | 'signOutOfOtherSessions' | 'passkeyName' | 'password' | 'confirmPassword' | 'identifier' | 'username' | 'code' | 'userCode' | 'role' | 'deleteConfirmation' | 'deleteOrganizationConfirmation' | 'enrollmentMode' | 'affiliationEmailAddress' | 'deleteExistingInvitationsSuggestions' | 'legalAccepted' | 'apiKeyDescription' | 'apiKeyExpirationDate' | 'apiKeyRevokeConfirmation' | 'apiKeySecret' | 'idpCertificate' | 'idpEntityId' | 'idpMetadata' | 'idpMetadataUrl' | 'idpSsoUrl' | 'discoveryUrl' | 'authUrl' | 'tokenUrl' | 'userInfoUrl' | 'clientId' | 'clientSecret' | 'redirectUri' | 'acsUrl' | 'spEntityId' | 'syncUserAttributes' | 'allowAdditionalIdentifiers' | 'allowSubdomains' | 'allowIdpInitiated' | 'forceAuthn' | 'web3WalletName' | 'domain';
+type ProfileSectionId = 'profile' | 'username' | 'emailAddresses' | 'phoneNumbers' | 'connectedAccounts' | 'enterpriseAccounts' | 'web3Wallets' | 'password' | 'passkeys' | 'mfa' | 'danger' | 'activeDevices' | 'organizationProfile' | 'organizationDanger' | 'organizationDomains' | 'manageVerifiedDomains' | 'subscriptionsList' | 'paymentMethods' | 'sso' | 'directorySync' | 'ssoStatus' | 'enableSso' | 'ssoDomain' | 'ssoConfiguration' | 'configureAgain' | 'resetSso' | 'testSsoUrl' | 'testResults' | 'ssoConnectionName' | 'ssoConnectionDomains' | 'ssoConnectionServiceProvider' | 'ssoConnectionIdentityProvider' | 'ssoConnectionSettings' | 'ssoConnectionDangerZone' | 'ssoBypass' | 'accountCredits';
+type ProfilePageId = 'account' | 'security' | 'organizationGeneral' | 'organizationMembers' | 'organizationSecurity' | 'billing';
+type UserPreviewId = 'userButton' | 'personalWorkspace';
+type OrganizationPreviewId = 'organizationSwitcherTrigger' | 'organizationList' | 'organizationSwitcherListedOrganization' | 'organizationSwitcherActiveOrganization' | 'taskChooseOrganization';
+type CardActionId = 'havingTrouble' | 'alternativeMethods' | 'signUp' | 'signIn' | 'usePasskey' | 'waitlist' | 'signOut' | 'ssoBypass';
+type MenuId = 'invitation' | 'member' | ProfileSectionId;
+type SelectId = 'countryCode' | 'role' | 'paymentMethod' | 'apiKeyExpiration';
+//#endregion
+export { AlertId, CardActionId, FieldId, MenuId, OrganizationPreviewId, ProfilePageId, ProfileSectionId, SelectId, UserPreviewId };
+//# sourceMappingURL=elementIds.d.mts.map

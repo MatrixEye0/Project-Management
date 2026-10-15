@@ -4,9 +4,10 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "prisma generate && node server.js",
-    "server": "nodemon server.js"
-  },
+  "start": "node server.js",
+  "server": "nodemon server.js",
+  "postinstall": "prisma generate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

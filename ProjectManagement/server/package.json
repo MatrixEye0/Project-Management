@@ -4,9 +4,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js",
-  "server": "nodemon server.js",
-  "postinstall": "prisma generate"
+  "start": "npx prisma generate && node server.js",
+  "server": "nodemon server.js"
 },
   "keywords": [],
   "author": "",

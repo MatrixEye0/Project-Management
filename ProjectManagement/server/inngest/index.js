@@ -65,5 +65,32 @@ const syncUserUpdation = inngest.createFunction(
         });
     }
 );
+// inngest function to save workspace data to database
+const syncWorkspaceCreation = inngest.createFunction(
+    { 
+        id: 'sync-workspace-from-clerk',
+        triggers: [{ event: "clerk/workspace.created" }] 
+    },
+    async({event})=> {
+        const {data} = event; 
+        await prisma.workspace.create({
+            data: {
+                id: data.id,
+                name: data.name,
+                slug: data.slug,
+                ownerId: data.created_by,
+                image: data.image_url || "",
+            }
+        })
+        // add creator to workspace members
+        await prisma.workspaceMember.create({
+            data: {
+                userId: data.created_by,
+                workspaceId: data.id,
+                role: "ADMIN",
+            }
+        })
+    }
+)
 
 export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];

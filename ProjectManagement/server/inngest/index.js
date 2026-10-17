@@ -149,4 +149,46 @@ const syncWorkspaceMemberCreation = inngest.createFunction(
     }
 )
 // inngest function to update workspace member data to database
+const syncWorkspaceMemberUpdation = inngest.createFunction(
+    {
+        id: 'update-workspace-member-from-clerk',
+        triggers: [{ event: "clerk/workspace_member.updated" }]
+    },
+    async({event})=> {
+        const {data} = event;
+        await prisma.workspaceMember.update({
+            where: {
+                userId_workspaceId: {
+                    userId: data.user_id,
+                    workspaceId: data.organization_id,
+                }
+            },
+            data: {
+                role: String(data.role_name).toUpperCase() || "MEMBER",
+            }
+        })
+    }
+)
+// inngest function to delete workspace member data from database
+const syncWorkspaceMemberDeletion = inngest.createFunction(
+    {
+        id: 'delete-workspace-member-with-clerk',
+        triggers: [{ event: "clerk/workspace_member.deleted" }]
+    },
+    async({event})=> {
+        const {data} = event;
+        try {
+            await prisma.workspaceMember.delete({
+                where: {
+                    userId_workspaceId: {
+                        userId: data.user_id,
+                        workspaceId: data.organization_id,
+                    }
+                }
+            });
+        } catch (error) {
+            console.log(`Workspace member ${data.user_id} not found or already deleted.`);
+        }
+    }
+)
 export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];

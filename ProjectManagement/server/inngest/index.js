@@ -191,4 +191,13 @@ const syncWorkspaceMemberDeletion = inngest.createFunction(
         }
     }
 )
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];
+export const functions = [
+     syncUserCreation, 
+     syncUserDeletion,
+     syncUserUpdation,
+     syncWorkspaceCreation,
+     syncWorkspaceUpdation,
+     syncWorkspaceDeletion,
+     syncWorkspaceMemberCreation,
+     syncWorkspaceMemberUpdation,
+     syncWorkspaceMemberDeletion];

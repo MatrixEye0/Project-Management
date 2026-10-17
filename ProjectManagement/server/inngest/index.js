@@ -111,5 +111,25 @@ const syncWorkspaceUpdation = inngest.createFunction(
             }
         })
     }
+)
+// inngest function to delete workspace data from database
+const syncWorkspaceDeletion = inngest.createFunction(
+    {
+        id: 'delete-workspace-with-clerk',
+        triggers: [{ event: "clerk/workspace.deleted" }]
+    },
+    async({event})=> {
+        const {data} = event;
+        try {
+            await prisma.workspace.delete({
+                where: {
+                    id: data.id,
+                }
+            });
+        } catch (error) {
+            console.log(`Workspace ${data.id} not found or already deleted.`);
+        }
+    }
+)
 
 export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];

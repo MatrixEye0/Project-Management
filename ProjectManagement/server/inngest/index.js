@@ -92,5 +92,24 @@ const syncWorkspaceCreation = inngest.createFunction(
         })
     }
 )
+// inngest function to update workspace data to database
+const syncWorkspaceUpdation = inngest.createFunction(
+    { 
+        id: 'update-workspace-from-clerk',
+        triggers: [{ event: "clerk/workspace.updated" }] 
+    },
+    async({event})=> {
+        const {data} = event;
+        await prisma.workspace.update({
+            where: {
+                id: data.id,
+            },
+            data: {
+                name: data.name,
+                slug: data.slug,
+                image: data.image_url || "",
+            }
+        })
+    }
 
 export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];

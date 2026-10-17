@@ -25,7 +25,6 @@ const syncUserCreation = inngest.createFunction(
         });
     }
 );
-
 const syncUserDeletion = inngest.createFunction(
     { 
         id: 'delete-user-with-clerk',
@@ -44,7 +43,6 @@ const syncUserDeletion = inngest.createFunction(
         }
     }
 );
-
 const syncUserUpdation = inngest.createFunction(
     { 
         id: 'update-user-from-clerk',

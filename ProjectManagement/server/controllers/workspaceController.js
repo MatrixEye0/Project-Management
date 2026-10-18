@@ -1,3 +1,4 @@
+import prisma from "../configs/prisma.js";
 export const getUserWorkspaces = async (req, res)=>{
     try{
       const {userId} = await req.auth();

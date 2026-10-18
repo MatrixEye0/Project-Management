@@ -1,5 +1,5 @@
 import express from "express";
-import { addMember, getUserWorkspaces } from "../controllers/workspaceControllerr";
+import { addMember, getUserWorkspaces } from "../controllers/workspaceController";
 
 const workspaceRouter = express.Router();
 

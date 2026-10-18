@@ -1,7 +1,7 @@
 export const getUserWorkspaces = async (req, res)=>{
     try{
       const {userId} = await req.auth();
-      const workspaces = await Prisma.worksapce.findMany({
+      const workspaces = await prisma.workspace.findMany({
         where:{
             members:{ some:{userId: userId}}
         },
@@ -35,7 +35,7 @@ export const addMember = async(req, res)=>{
        if(!user){
         return res.status(404).json({message: "User not found"})
        }
-        if(!workspaceId || role){
+        if(!workspaceId || !role){
         return res.status(404).json({message: "Missing required parameter"})
        }
         if(!["ADMIN", "MEMBER"].includes(role)){
@@ -43,7 +43,7 @@ export const addMember = async(req, res)=>{
        }
 
        // fetch workspace
-       const workspace = await prisma.worksapce.findUnique({where: {id:workspaceId},include:{member:true}})
+       const workspace = await prisma.workspace.findUnique({where: {id:workspaceId},include:{member:true}})
         if(!workspace){
         return res.status(404).json({message: "Workspace not found"})
        }
@@ -56,7 +56,7 @@ export const addMember = async(req, res)=>{
         return res.status(400).json({message: "User is already a member"})
        }
 
-       const member = await prisma.worksapceMember.create({
+       const member = await prisma.workspaceMember.create({
         data:{
             userId: user.id,
             workspaceId,

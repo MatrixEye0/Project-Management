@@ -240,8 +240,9 @@ const syncWorkspaceMemberDeletion = inngest.createFunction(
 
 // send email on task creation 
 const sendTaskAssignmentEmail = inngest.createFunction(
-    {id:"send-task-assignment-mail"},
-    {event :"app/task.assigned"},
+    {id:"send-task-assignment-mail",
+        event :"app/task.assigned"
+    },
     async ({event,step})=>{
         const {taskId, origin} = event.data;
         const task = await prisma.task.findUnique({

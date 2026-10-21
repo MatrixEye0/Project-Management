@@ -1,6 +1,5 @@
 import { Inngest } from "inngest";
 import { PrismaClient } from "@prisma/client";
-import { Param } from "@prisma/client/runtime/library";
 import sendEmail from "../configs/nodemailer.js";
 
 const prisma = new PrismaClient();

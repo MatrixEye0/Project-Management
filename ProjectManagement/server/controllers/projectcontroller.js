@@ -22,7 +22,7 @@ export const createProject = async (req, res)=>{
             select: {id:true}
          })
          const project = await prisma.project.create({
-            date:{
+            data:{
                 workspaceId,
                 name,
                 description,

@@ -40,8 +40,8 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
             dispatch(addProject(data.project))
             setIsDialogOpen(false)
-        }catch(e){
-            toast.e(e?.response?.data?.message || e.message)
+        }catch(error){
+            toast.error(error?.response?.data?.message || error.message)
         }
         finally{
             setIsSubmitting(false)

@@ -61,30 +61,46 @@ const workspaceSlice = createSlice({
             }
         },
         addProject: (state, action) => {
-            state.currentWorkspace.projects.push(action.payload);
-            // find workspace by id and add project to it
+            const newProject = action.payload;
+
+            if (state.currentWorkspace) {
+                const currentProjects = state.currentWorkspace.projects || [];
+                state.currentWorkspace = {
+                    ...state.currentWorkspace,
+                    projects: [...currentProjects, newProject]
+                };
+            }
+
+            // Find workspace by id and add project to it immutably
             state.workspaces = state.workspaces.map((w) =>
-                w.id === state.currentWorkspace.id
-                    ? { ...w, projects: w.projects.concat(action.payload) }
+                w.id === state.currentWorkspace?.id
+                    ? { ...w, projects: [...(w.projects || []), newProject] }
                     : w
             );
         },
         addTask: (state, action) => {
-            state.currentWorkspace.projects = state.currentWorkspace.projects.map((p) => {
-                if (p.id === action.payload.projectId) {
-                    p.tasks.push(action.payload);
-                }
-                return p;
-            });
+            const newTask = action.payload;
 
-            // find workspace and project by id and add task to it
+            if (state.currentWorkspace) {
+                state.currentWorkspace = {
+                    ...state.currentWorkspace,
+                    projects: (state.currentWorkspace.projects || []).map((p) => {
+                        if (p.id === newTask.projectId) {
+                            return { ...p, tasks: [...(p.tasks || []), newTask] };
+                        }
+                        return p;
+                    })
+                };
+            }
+
+            // Find workspace and project by id and add task to it immutably
             state.workspaces = state.workspaces.map((w) =>
-                w.id === state.currentWorkspace.id
+                w.id === state.currentWorkspace?.id
                     ? {
                         ...w,
-                        projects: w.projects.map((p) =>
-                            p.id === action.payload.projectId
-                                ? { ...p, tasks: p.tasks.concat(action.payload) }
+                        projects: (w.projects || []).map((p) =>
+                            p.id === newTask.projectId
+                                ? { ...p, tasks: [...(p.tasks || []), newTask] }
                                 : p
                         ),
                     }
@@ -92,25 +108,36 @@ const workspaceSlice = createSlice({
             );
         },
         updateTask: (state, action) => {
-            state.currentWorkspace.projects.forEach((p) => {
-                if (p.id === action.payload.projectId) {
-                    p.tasks = p.tasks.map((t) =>
-                        t.id === action.payload.id ? action.payload : t
-                    );
-                }
-            });
+            const updatedTask = action.payload;
 
-            // find workspace and project by id and update task in it
+            if (state.currentWorkspace) {
+                state.currentWorkspace = {
+                    ...state.currentWorkspace,
+                    projects: (state.currentWorkspace.projects || []).map((p) => {
+                        if (p.id === updatedTask.projectId) {
+                            return {
+                                ...p,
+                                tasks: (p.tasks || []).map((t) =>
+                                    t.id === updatedTask.id ? updatedTask : t
+                                )
+                            };
+                        }
+                        return p;
+                    })
+                };
+            }
+
+            // Find workspace and project by id and update task in it immutably
             state.workspaces = state.workspaces.map((w) =>
-                w.id === state.currentWorkspace.id
+                w.id === state.currentWorkspace?.id
                     ? {
                         ...w,
-                        projects: w.projects.map((p) =>
-                            p.id === action.payload.projectId
+                        projects: (w.projects || []).map((p) =>
+                            p.id === updatedTask.projectId
                                 ? {
                                     ...p,
-                                    tasks: p.tasks.map((t) =>
-                                        t.id === action.payload.id ? action.payload : t
+                                    tasks: (p.tasks || []).map((t) =>
+                                        t.id === updatedTask.id ? updatedTask : t
                                     ),
                                 }
                                 : p
@@ -123,18 +150,24 @@ const workspaceSlice = createSlice({
             // payload = array of task ids
             const ids = action.payload;
 
-            state.currentWorkspace.projects.forEach((p) => {
-                p.tasks = p.tasks.filter((t) => !ids.includes(t.id));
-            });
+            if (state.currentWorkspace) {
+                state.currentWorkspace = {
+                    ...state.currentWorkspace,
+                    projects: (state.currentWorkspace.projects || []).map((p) => ({
+                        ...p,
+                        tasks: (p.tasks || []).filter((t) => !ids.includes(t.id)),
+                    }))
+                };
+            }
 
-            // remove the tasks from the matching workspace too
+            // Remove the tasks from the matching workspace too immutably
             state.workspaces = state.workspaces.map((w) =>
-                w.id === state.currentWorkspace.id
+                w.id === state.currentWorkspace?.id
                     ? {
                         ...w,
-                        projects: w.projects.map((p) => ({
+                        projects: (w.projects || []).map((p) => ({
                             ...p,
-                            tasks: p.tasks.filter((t) => !ids.includes(t.id)),
+                            tasks: (p.tasks || []).filter((t) => !ids.includes(t.id)),
                         })),
                     }
                     : w

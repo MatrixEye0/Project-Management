@@ -2,7 +2,7 @@
 export const createProject = async (req, res)=>{
     try{
          const{userId} = await req.auth();
-         const {workspaceId, description, name, status, start_date, end_date, tem_members, team_lead, progress, priority} = req.body;
+         const {workspaceId, description, name, status, start_date, end_date, team_members, team_lead, progress, priority} = req.body;
          // check user has admin role in organization
          const workspace = await prisma.workspace.findUnique({
             where:{id: workspaceId},
@@ -36,10 +36,10 @@ export const createProject = async (req, res)=>{
          })
 
          // add member to project if they are in organization
-         if(tem_members?.length > 0){
+         if(team_members?.length > 0){
             const membersToAdd = []
-            workspace.members.array.forEach(member => {
-                if(tem_members.includes(member.user.email)){
+            workspace.members.forEach(member => {
+                if(team_members.includes(member.user.email)){
                     membersToAdd.push(member.user.id)
                 }
             })

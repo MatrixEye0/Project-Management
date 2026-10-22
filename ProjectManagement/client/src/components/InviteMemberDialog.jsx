@@ -23,7 +23,7 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
               toast.success("Invitation send successfully")
               setIsDialogOpen(false)
         }catch(error){
-       console.log(error)
+            console.log(error)
         toast.error(error?.response?.data?.message || error.message)
         } finally{
             setIsSubmitting(false)

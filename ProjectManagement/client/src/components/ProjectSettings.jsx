@@ -2,8 +2,17 @@ import { format } from "date-fns";
 import { Plus, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import AddProjectMember from "./AddProjectMember";
+import { useDispatch } from "react-redux";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
+import {fetchWorkspaces} from '../features/workspaceSlice.js'
+import api from '../configs/api.js'
 
 export default function ProjectSettings({ project }) {
+
+
+    const dispatch = useDispatch()
+    const {getToken} = useAuth()
 
     const [formData, setFormData] = useState({
         name: "New Website Launch",
@@ -20,7 +29,26 @@ export default function ProjectSettings({ project }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+          setIsSubmitting(true)
+          toast.loading("Saving............")
+          try{
+            const {data} = await api.put(`/api/projects/${project.id}`, 
+                {
+                id: project.id, // 👈 Explicitly include the project ID here
+                workspaceId: project.workspaceId,
+                ...formData
+            },{headers:{Authorization: `Bearer ${await getToken()}`}})
+            setIsDialogOpen(false)
+            dispatch(fetchWorkspaces({getToken}))
+            toast.dismissAll()
+            toast.success(data.message)
+          }catch(error){
+            console.log(error)
+              toast.dismissAll();
+            toast.error(error?.response?.data?.message || error.message)
+          }finally{
+            setIsSubmitting(false)
+          }
     };
 
     useEffect(() => {

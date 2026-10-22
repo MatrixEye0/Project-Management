@@ -72,8 +72,18 @@ export const createProject = async (req, res)=>{
 export const updateProject = async (req, res)=>{
     try{
         const {userId} = await req.auth();
-        const { id, workspaceId, description, name, status, start_date, end_date, progress, priority}= req.body;
+        const { id } = req.params;
+        const { workspaceId, description, name, status, start_date, end_date, progress, priority}= req.body;
          
+
+        const existingProject = await prisma.project.findUnique({
+            where: { id }
+        });
+
+        if (!existingProject) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
          const workspace = await prisma.workspace.findUnique({
             where:{id: workspaceId},
             include: {members:{include:{user:true}}}

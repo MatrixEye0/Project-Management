@@ -283,10 +283,11 @@ const sendTaskAssignmentEmail = inngest.createFunction(
             })
             if(!task) return;
             if(task.status !== "DONE"){
-                await step.run('send-task-reminder-mail'),async()=>{
+                // FIXED: Corrected step.run argument syntax here
+                await step.run('send-task-reminder-mail', async () => {
                     await sendEmail({
                         to: task.assignee.email,
-                        subject: `Remainder for ${task.project.name}`,
+                        subject: `Reminder for ${task.project.name}`,
                         body: `<div style="max-width: 600px;">
   <h2>Hi ${task.assignee.name}</h2>
 
@@ -307,7 +308,7 @@ const sendTaskAssignmentEmail = inngest.createFunction(
   </p>
 </div>`
                     })
-                }
+                })
             }
           })
         }

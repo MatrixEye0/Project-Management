@@ -16,8 +16,14 @@ const syncUserCreation = inngest.createFunction(
         const email = data?.email_addresses?.[0]?.email_address || data?.email || "";
         const name = `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || data?.username || "User";
 
-        await prisma.user.create({
-            data: {
+        await prisma.user.upsert({
+            where: { id: data.id },
+            update: {
+                email: email,
+                name: name,
+                image: data?.image_url || "",
+            },
+            create: {
                 id: data.id,
                 email: email,
                 name: name,
@@ -56,11 +62,15 @@ const syncUserUpdation = inngest.createFunction(
         const email = data?.email_addresses?.[0]?.email_address || data?.email || "";
         const name = `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || data?.username || "User";
 
-        await prisma.user.update({
-            where: {
-                id: data.id,
+        await prisma.user.upsert({
+            where: { id: data.id },
+            update: {
+                email: email,
+                name: name,
+                image: data?.image_url || "",
             },
-            data: {
+            create: {
+                id: data.id,
                 email: email,
                 name: name,
                 image: data?.image_url || "",
@@ -69,7 +79,7 @@ const syncUserUpdation = inngest.createFunction(
     }
 );
 
-// Inngest function to save workspace data to database
+// Inngest function to save workspace data to database safely
 const syncWorkspaceCreation = inngest.createFunction(
     { 
         id: 'sync-workspace-from-clerk',
@@ -77,37 +87,59 @@ const syncWorkspaceCreation = inngest.createFunction(
     },
     async({event})=> {
         const {data} = event; 
-        const ownerId = data.created_by;
+        const ownerId = data.created_by || data.owner_id;
 
-        await prisma.workspace.create({
-            data: {
+        // 1. Ensure the owner user exists in the database to prevent foreign key errors
+        if (ownerId) {
+            await prisma.user.upsert({
+                where: { id: ownerId },
+                update: {},
+                create: {
+                    id: ownerId,
+                    email: "pending_sync@clerk.user",
+                    name: "Workspace Owner",
+                }
+            });
+        }
+
+        // 2. Safely create or update the workspace using upsert
+        await prisma.workspace.upsert({
+            where: { id: data.id },
+            update: {
+                name: data.name,
+                slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
+                image_url: data.image_url || "",
+            },
+            create: {
                 id: data.id,
                 name: data.name,
                 slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
-                ownerId: ownerId,
+                ownerId: ownerId || undefined,
                 image_url: data.image_url || "",
             }
         });
 
-        // Add creator to workspace members safely
-        await prisma.workspaceMember.upsert({
-            where: {
-                userId_workspaceId: {
+        // 3. Add creator to workspace members safely
+        if (ownerId) {
+            await prisma.workspaceMember.upsert({
+                where: {
+                    userId_workspaceId: {
+                        userId: ownerId,
+                        workspaceId: data.id,
+                    }
+                },
+                update: { role: "ADMIN" },
+                create: {
                     userId: ownerId,
                     workspaceId: data.id,
+                    role: "ADMIN",
                 }
-            },
-            update: { role: "ADMIN" },
-            create: {
-                userId: ownerId,
-                workspaceId: data.id,
-                role: "ADMIN",
-            }
-        });
+            });
+        }
     }
 );
 
-// Inngest function to update workspace data to database
+// Inngest function to update workspace data to database safely (Self-healing)
 const syncWorkspaceUpdation = inngest.createFunction(
     { 
         id: 'update-workspace-from-clerk',
@@ -115,14 +147,30 @@ const syncWorkspaceUpdation = inngest.createFunction(
     },
     async({event})=> {
         const {data} = event;
-        await prisma.workspace.update({
-            where: {
-                id: data.id,
-            },
-            data: {
+        const ownerId = data.created_by || data.owner_id;
+
+        if (ownerId) {
+            await prisma.user.upsert({
+                where: { id: ownerId },
+                update: {},
+                create: { id: ownerId, email: "pending_sync@clerk.user", name: "Workspace Owner" }
+            });
+        }
+        
+        // Use upsert here instead of update so if creation event was missed, it self-heals and creates it automatically.
+        await prisma.workspace.upsert({
+            where: { id: data.id },
+            update: {
                 name: data.name,
                 slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
                 image_url: data.image_url || "",
+            },
+            create: {
+                id: data.id,
+                name: data.name,
+                slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
+                image_url: data.image_url || "",
+                ownerId: ownerId || undefined,
             }
         });
     }
@@ -164,6 +212,20 @@ const syncWorkspaceMemberCreation = inngest.createFunction(
 
         if (!userId || !orgId) return;
 
+        // Ensure user exists before adding as workspace member
+        await prisma.user.upsert({
+            where: { id: userId },
+            update: {},
+            create: { id: userId, email: "pending_sync@clerk.user", name: "Team Member" }
+        });
+
+        // Ensure workspace exists before adding member
+        await prisma.workspace.upsert({
+            where: { id: orgId },
+            update: {},
+            create: { id: orgId, name: "Workspace", slug: orgId }
+        });
+
         await prisma.workspaceMember.upsert({
             where: {
                 userId_workspaceId: {
@@ -196,14 +258,19 @@ const syncWorkspaceMemberUpdation = inngest.createFunction(
 
         if (!userId || !orgId) return;
 
-        await prisma.workspaceMember.update({
+        await prisma.workspaceMember.upsert({
             where: {
                 userId_workspaceId: {
                     userId: userId,
                     workspaceId: orgId,
                 }
             },
-            data: {
+            update: {
+                role: String(data.role_name || data.role || "MEMBER").toUpperCase(),
+            },
+            create: {
+                userId: userId,
+                workspaceId: orgId,
                 role: String(data.role_name || data.role || "MEMBER").toUpperCase(),
             }
         });
@@ -241,7 +308,7 @@ const syncWorkspaceMemberDeletion = inngest.createFunction(
 // send email on task creation 
 const sendTaskAssignmentEmail = inngest.createFunction(
     {id:"send-task-assignment-mail",
-       triggers:[{ event :"app/task.assigned"}]
+        triggers:[{ event :"app/task.assigned"}]
     },
     async ({event,step})=>{
         const {taskId, origin} = event.data;
@@ -249,6 +316,8 @@ const sendTaskAssignmentEmail = inngest.createFunction(
             where:{id: taskId},
             include:{assignee:true, project:true}
         })
+        if (!task || !task.assignee) return;
+
         await sendEmail({
             to: task.assignee.email,
             subject:`New Task Assignment in ${task.project.name}`,
@@ -273,30 +342,29 @@ const sendTaskAssignmentEmail = inngest.createFunction(
 </div>`
         })
 
-        if(new Date(task.due_date).toLocaleDateString() !== new Date().toDateString()){
+        if(task.due_date && new Date(task.due_date).toLocaleDateString() !== new Date().toDateString()){
           await step.sleepUntil('wait-for-the-due-date', new Date(task.due_date));
 
           await step.run('check-if-task-is-completed', async()=>{
-            const task = await prisma.task.findUnique({
+            const currentTask = await prisma.task.findUnique({
                 where:{id:taskId},
                 include: {assignee:true, project:true}
             })
-            if(!task) return;
-            if(task.status !== "DONE"){
-                // FIXED: Corrected step.run argument syntax here
+            if(!currentTask || !currentTask.assignee) return;
+            if(currentTask.status !== "DONE"){
                 await step.run('send-task-reminder-mail', async () => {
                     await sendEmail({
-                        to: task.assignee.email,
-                        subject: `Reminder for ${task.project.name}`,
+                        to: currentTask.assignee.email,
+                        subject: `Reminder for ${currentTask.project.name}`,
                         body: `<div style="max-width: 600px;">
-  <h2>Hi ${task.assignee.name}</h2>
+  <h2>Hi ${currentTask.assignee.name}</h2>
 
-  <p style="font-size: 16px;">You've been assigned a new task</p>
-  <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${task.title}</p>
+  <p style="font-size: 16px;">You have a pending task reminder</p>
+  <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${currentTask.title}</p>
 
   <div style="border: 1px solid #ddd; padding: 12px 16px; border-radius: 6px; margin-bottom: 30px;">
-    <p style="margin: 6px 0;"><strong>Description:</strong> ${task.description}</p>
-    <p style="margin: 6px 0;"><strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>
+    <p style="margin: 6px 0;"><strong>Description:</strong> ${currentTask.description}</p>
+    <p style="margin: 6px 0;"><strong>Due Date:</strong> ${new Date(currentTask.due_date).toLocaleDateString()}</p>
   </div>
 
   <a href="${origin}" style="background-color: #007bff; padding: 12px 24px; border-radius: 5px; color: #fff; font-weight: 600; font-size: 16px; text-decoration: none;">

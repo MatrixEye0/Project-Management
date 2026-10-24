@@ -1,6 +1,5 @@
 import prisma from "../configs/prisma.js";
 import { inngest } from "../inngest/index.js";
-import sendEmail from "../configs/nodemailer.js";
 
 // create task 
 export const createTask = async (req, res)=>{
@@ -8,6 +7,11 @@ export const createTask = async (req, res)=>{
          const {userId} = await req.auth();
          const {projectId, title, description, type, status, priority, assigneeId, due_date} = req.body;
          const origin = req.get('origin')
+         const dueDate = new Date(due_date);
+
+         if (!projectId || !title?.trim() || !assigneeId || !due_date || Number.isNaN(dueDate.getTime())) {
+            return res.status(400).json({ message: "Title, project, assignee, and a valid due date are required" });
+         }
 
          // check user is admin role
          const project = await prisma.project.findUnique({
@@ -27,10 +31,11 @@ export const createTask = async (req, res)=>{
                 projectId,
                 title,
                 description,
+                type,
                 priority,
                 assigneeId,
                 status,
-                due_date: new Date(due_date)
+                due_date: dueDate
             }
          })
 
@@ -96,13 +101,19 @@ export const deleteTask = async (req, res)=>{
     try{
 
          const {userId} = await req.auth();
-         const {tasksIds} = req.body 
+         const {tasksIds} = req.body
+         if (!Array.isArray(tasksIds) || tasksIds.length === 0) {
+            return res.status(400).json({ message: "Select at least one task" });
+         }
          const tasks = await prisma.task.findMany({
             where:{id:{in:tasksIds}}
          })
 
-         if(tasks.length === 0){
+         if(tasks.length !== new Set(tasksIds).size){
             return res.status(400).json({message:"Task not found"});
+         }
+         if (new Set(tasks.map((task) => task.projectId)).size !== 1) {
+            return res.status(400).json({ message: "Tasks must belong to the same project" });
          }
          // check user is admin role
          const project = await prisma.project.findUnique({
@@ -112,7 +123,7 @@ export const deleteTask = async (req, res)=>{
          if(!project){
             return res.status(404).json({message:"Project not found"})
          }else if(project.team_lead !== userId){
-            return res.status(404).json({message:"not have ADMIN level power in project"})
+            return res.status(403).json({message:"You do not have permission to delete tasks"})
          }
         
          await prisma.task.deleteMany({

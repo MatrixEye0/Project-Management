@@ -11,6 +11,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async ({to , subject, body}) =>{
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SENDER_EMAIL) {
+      throw new Error("Email delivery is not configured. Set SMTP_USER, SMTP_PASS, and SENDER_EMAIL.");
+    }
+
     const response = await transporter.sendMail({
     from: process.env.SENDER_EMAIL , // sender address
     to, // list of recipients

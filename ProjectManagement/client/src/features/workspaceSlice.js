@@ -4,12 +4,12 @@ import api from '../configs/api.js';
 // usage: dispatch(fetchWorkspaces({ getToken }))  or  { getToken, silent: true } for background polling
 export const fetchWorkspaces = createAsyncThunk(
     'workspaces/fetchWorkspaces',
-    async ({ getToken }, { rejectWithValue }) => {
+    async ({ getToken, userId }, { rejectWithValue }) => {
         try {
             const { data } = await api.get('/api/workspaces', {
                 headers: { Authorization: `Bearer ${await getToken()}` }
             });
-            return data.workspaces || [];
+            return { workspaces: data.workspaces || [], userId };
         } catch (error) {
             console.log(error?.response?.data?.message || error.message);
             // reject (instead of returning []) so a network error never wipes existing workspaces
@@ -22,12 +22,22 @@ const initialState = {
     workspaces: [],
     currentWorkspace: null,
     loading: true, // true until the first fetch finishes, avoids flashing the create-org form
+    error: null,
+    userId: null,
 };
 
 const workspaceSlice = createSlice({
     name: "workspace",
     initialState,
     reducers: {
+        resetWorkspaces: (state, action) => {
+            state.workspaces = [];
+            state.currentWorkspace = null;
+            state.userId = action.payload || null;
+            state.loading = Boolean(action.payload);
+            state.error = null;
+            localStorage.removeItem("currentWorkspaceId");
+        },
         setWorkspaces: (state, action) => {
             state.workspaces = action.payload;
         },
@@ -58,6 +68,11 @@ const workspaceSlice = createSlice({
             state.workspaces = state.workspaces.filter((w) => w.id !== action.payload);
             if (state.currentWorkspace?.id === action.payload) {
                 state.currentWorkspace = state.workspaces[0] || null;
+                if (state.currentWorkspace) {
+                    localStorage.setItem("currentWorkspaceId", state.currentWorkspace.id);
+                } else {
+                    localStorage.removeItem("currentWorkspaceId");
+                }
             }
         },
         addProject: (state, action) => {
@@ -177,28 +192,40 @@ const workspaceSlice = createSlice({
 
     extraReducers: (builder) => {
         builder.addCase(fetchWorkspaces.pending, (state, action) => {
+            state.error = null;
             // silent polling should not show the full-page loader
             if (!action.meta.arg?.silent) {
                 state.loading = true;
             }
         });
         builder.addCase(fetchWorkspaces.fulfilled, (state, action) => {
-            state.workspaces = action.payload;
+            const { workspaces, userId } = action.payload;
+            if (userId && userId !== state.userId) return;
 
-            if (action.payload.length > 0) {
+            state.workspaces = workspaces;
+            state.error = null;
+            if (workspaces.length > 0) {
                 const savedId = localStorage.getItem('currentWorkspaceId');
-                const saved = savedId ? action.payload.find((w) => w.id === savedId) : null;
-                state.currentWorkspace = saved || action.payload[0];
+                const saved = savedId ? workspaces.find((w) => w.id === savedId) : null;
+                state.currentWorkspace = saved || workspaces[0];
+                localStorage.setItem("currentWorkspaceId", state.currentWorkspace.id);
+            } else {
+                state.currentWorkspace = null;
+                localStorage.removeItem("currentWorkspaceId");
             }
             state.loading = false;
         });
-        builder.addCase(fetchWorkspaces.rejected, (state) => {
+        builder.addCase(fetchWorkspaces.rejected, (state, action) => {
+            if (action.meta.arg?.silent) return;
+            if (action.meta.arg?.userId && action.meta.arg.userId !== state.userId) return;
             state.loading = false;
+            state.error = action.payload || action.error.message;
         });
     },
 });
 
 export const {
+    resetWorkspaces,
     setWorkspaces,
     setCurrentWorkspace,
     addWorkspace,

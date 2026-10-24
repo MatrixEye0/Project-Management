@@ -1,6 +1,5 @@
 // create project
 import prisma from "../configs/prisma.js";
-import sendEmail from "../configs/nodemailer.js";
 
 export const createProject = async (req, res)=>{
     try{
@@ -20,10 +19,10 @@ export const createProject = async (req, res)=>{
          }
 
          // get team lead using email
-         const teamLead = await prisma.user.findUnique({
-            where:{email: team_lead},
-            select: {id:true}
-         })
+         const teamLead = workspace.members.find((member) => member.user.email === team_lead)?.user;
+         if (!teamLead) {
+            return res.status(400).json({ message: "Select a project lead from this workspace" });
+         }
          const project = await prisma.project.create({
             data:{
                 workspaceId,
@@ -32,27 +31,26 @@ export const createProject = async (req, res)=>{
                 status,
                 priority,
                 progress,
-                team_lead: teamLead?.id,
+                team_lead: teamLead.id,
                 start_date: start_date ? new Date(start_date) : null,
                 end_date: end_date ? new Date(end_date) : null
             }
          })
 
          // add member to project if they are in organization
-         if(team_members?.length > 0){
-            const membersToAdd = []
-            workspace.members.forEach(member => {
-                if(team_members.includes(member.user.email)){
-                    membersToAdd.push(member.user.id)
-                }
-            })
-            await prisma.projectMember.createMany({
-                data: membersToAdd.map(memberId => ({
-                    projectId: project.id,
-                    userId: memberId
-                }))
-            })
-         }
+         const membersToAdd = new Set(
+            workspace.members
+                .filter((member) => team_members?.includes(member.user.email))
+                .map((member) => member.user.id)
+         );
+         membersToAdd.add(teamLead.id);
+         await prisma.projectMember.createMany({
+            data: [...membersToAdd].map((memberId) => ({
+                projectId: project.id,
+                userId: memberId
+            })),
+            skipDuplicates: true
+         });
 
          const projectWithMembers = await prisma.project.findUnique({
             where:{id: project.id},
@@ -133,6 +131,9 @@ export const addMember = async (req, res)=>{
          const {userId} = await req.auth();
          const {projectId} = req.params;
          const {email} = req.body;
+         if (!email) {
+            return res.status(400).json({ message: "Member email is required" });
+         }
 
          //check user is project lead 
          const project = await prisma.project.findUnique({
@@ -141,26 +142,38 @@ export const addMember = async (req, res)=>{
          })
 
          if(!project){
-            res.status(404).json({message: "Project not found"});
+            return res.status(404).json({message: "Project not found"});
          }
          if(project.team_lead !== userId){
-            return res.status(404).json({message: "Only project lead add member"})
+            return res.status(403).json({message: "Only the project lead can add members"})
          }
 
          //check user is already member
-         const exitingMember = project.members.find((member)=>member.email === email)
+         const exitingMember = project.members.find((member)=>member.user.email === email)
          if(exitingMember){
             return res.status(400).json({message: "User is already member"})
          }
 
-         const user = await prisma.user.findUnique({where:{email}});
-         if(!user){
-            return res.status(404).json({message: "User not found"})
+         const workspaceMember = await prisma.workspaceMember.findFirst({
+            where: {
+                workspaceId: project.workspaceId,
+                user: { email }
+            }
+         });
+         if(!workspaceMember){
+            return res.status(404).json({message: "User is not a member of this workspace"})
          }
 
-         const member = await prisma.projectMember.create({
-            data:{
-                userId: user.id,
+         await prisma.projectMember.upsert({
+            where: {
+                userId_projectId: {
+                    userId: workspaceMember.userId,
+                    projectId
+                }
+            },
+            update: {},
+            create: {
+                userId: workspaceMember.userId,
                 projectId
             }
          })

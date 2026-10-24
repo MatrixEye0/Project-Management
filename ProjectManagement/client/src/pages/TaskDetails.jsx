@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CalendarIcon, MessageCircle, PenIcon } from "lucide-react";
 //import { assets } from "../assets/assets";
@@ -13,6 +13,7 @@ const TaskDetails = () => {
     const [searchParams] = useSearchParams();
     const projectId = searchParams.get("projectId");
     const taskId = searchParams.get("taskId");
+    const workspaceId = searchParams.get("workspaceId");
 
     const {user} = useUser()
     const {getToken} = useAuth()
@@ -22,9 +23,9 @@ const TaskDetails = () => {
     const [newComment, setNewComment] = useState("");
     const [loading, setLoading] = useState(true);
 
-    const { currentWorkspace } = useSelector((state) => state.workspace);
+    const { workspaces } = useSelector((state) => state.workspace);
 
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
        if(!taskId) return
        try{
            const token = await getToken()
@@ -33,22 +34,36 @@ const TaskDetails = () => {
        }catch(error){
          toast.error(error?.response?.data?.message || error.message)
        }
-    };
+    }, [getToken, taskId]);
 
-    const fetchTaskDetails = async () => {
+    const fetchTaskDetails = useCallback(() => {
         setLoading(true);
-        if (!projectId || !taskId) return;
+        if (!projectId || !taskId) {
+            setTask(null);
+            setLoading(false);
+            return;
+        }
 
-        const proj = currentWorkspace.projects.find((p) => p.id === projectId);
-        if (!proj) return;
+        const workspace = workspaces.find((item) => item.id === workspaceId)
+            || workspaces.find((item) => item.projects.some((p) => p.id === projectId));
+        const proj = workspace?.projects.find((p) => p.id === projectId);
+        if (!proj) {
+            setTask(null);
+            setLoading(false);
+            return;
+        }
 
         const tsk = proj.tasks.find((t) => t.id === taskId);
-        if (!tsk) return;
+        if (!tsk) {
+            setTask(null);
+            setLoading(false);
+            return;
+        }
 
         setTask(tsk);
         setProject(proj);
         setLoading(false);
-    };
+    }, [projectId, taskId, workspaceId, workspaces]);
 
     const handleAddComment = async () => {
         if (!newComment.trim()) return;
@@ -73,7 +88,7 @@ const TaskDetails = () => {
         }
     };
 
-    useEffect(() => { fetchTaskDetails(); }, [taskId]);
+    useEffect(() => { fetchTaskDetails(); }, [fetchTaskDetails]);
 
     useEffect(() => {
         if (taskId && task) {
@@ -81,7 +96,7 @@ const TaskDetails = () => {
             const interval = setInterval(() => { fetchComments(); }, 10000);
             return () => clearInterval(interval);
         }
-    }, [taskId, task]);
+    }, [fetchComments, taskId, task]);
 
     if (loading) return <div className="text-gray-500 dark:text-zinc-400 px-4 py-6">Loading task details...</div>;
     if (!task) return <div className="text-red-500 px-4 py-6">Task not found.</div>;

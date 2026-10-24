@@ -1,10 +1,87 @@
+import { clerkClient } from "@clerk/express";
 import prisma from "../configs/prisma.js";
-import sendEmail from "../configs/nodemailer.js";
+import { syncClerkUser } from "../utils/syncClerkUser.js";
+
+const syncClerkWorkspaces = async (userId) => {
+    const memberships = [];
+    const pageSize = 100;
+
+    for (let offset = 0; ; offset += pageSize) {
+        const page = await clerkClient.users.getOrganizationMembershipList({
+            userId,
+            limit: pageSize,
+            offset,
+        });
+        memberships.push(...page.data);
+        if (memberships.length >= page.totalCount || page.data.length === 0) break;
+    }
+
+    for (const membership of memberships) {
+        const organization = membership.organization;
+        const ownerId = organization.createdBy || userId;
+        if (ownerId !== userId) {
+            const owner = await prisma.user.findUnique({
+                where: { id: ownerId },
+                select: { id: true },
+            });
+            if (!owner) await syncClerkUser(ownerId);
+        }
+
+        const slug = organization.slug || organization.id;
+        await prisma.workspace.upsert({
+            where: { id: organization.id },
+            update: {
+                name: organization.name,
+                slug,
+                image_url: organization.imageUrl || "",
+            },
+            create: {
+                id: organization.id,
+                name: organization.name,
+                slug,
+                ownerId,
+                image_url: organization.imageUrl || "",
+            },
+        });
+
+        await prisma.workspaceMember.upsert({
+            where: {
+                userId_workspaceId: {
+                    userId: ownerId,
+                    workspaceId: organization.id,
+                },
+            },
+            update: { role: "ADMIN" },
+            create: {
+                userId: ownerId,
+                workspaceId: organization.id,
+                role: "ADMIN",
+            },
+        });
+
+        const role = membership.role.toLowerCase().includes("admin") ? "ADMIN" : "MEMBER";
+        await prisma.workspaceMember.upsert({
+            where: {
+                userId_workspaceId: {
+                    userId,
+                    workspaceId: organization.id,
+                },
+            },
+            update: { role },
+            create: {
+                userId,
+                workspaceId: organization.id,
+                role,
+            },
+        });
+    }
+};
 
 // get all workspaces the logged-in user is a member of
 export const getUserWorkspaces = async (req, res) => {
     try {
         const { userId } = await req.auth();
+        await syncClerkWorkspaces(userId);
 
         const workspaces = await prisma.workspace.findMany({
             where: {

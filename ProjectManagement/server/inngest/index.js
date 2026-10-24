@@ -1,8 +1,7 @@
 import { Inngest } from "inngest";
 import { PrismaClient } from "@prisma/client";
 import sendEmail from "../configs/nodemailer.js";
-
-const prisma = new PrismaClient();
+import prisma from "../configs/prisma.js";
 
 export const inngest = new Inngest({ id: "project-management" });
 

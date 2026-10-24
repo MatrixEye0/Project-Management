@@ -1,4 +1,6 @@
 import prisma from "../configs/prisma.js";
+import sendEmail from "../configs/nodemailer.js";
+
 export const addComment = async (req, res)=>{
   try{
      const {userId} = await req.auth();

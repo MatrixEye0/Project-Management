@@ -85,8 +85,8 @@ const syncWorkspaceCreation = inngest.createFunction(
                 update: {},
                 create: {
                     id: ownerId,
-                    email: "pending_sync@clerk.user", // Fallback if user profile wasn't synced yet
-                    name: "Workspace Owner",
+                    // email: "pending_sync@clerk.user", // Fallback if user profile wasn't synced yet
+                    // name: "Workspace Owner",
                 }
             });
         }
@@ -142,7 +142,9 @@ const syncWorkspaceUpdation = inngest.createFunction(
                 await prisma.user.upsert({
                     where: { id: ownerId },
                     update: {},
-                    create: { id: ownerId, email: "pending_sync@clerk.user", name: "Workspace Owner" }
+                    create: { id: ownerId, 
+                        // email: "pending_sync@clerk.user", name: "Workspace Owner"
+                     }
                 });
                 
                 await prisma.workspace.create({

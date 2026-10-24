@@ -1,5 +1,6 @@
 import prisma from "../configs/prisma.js";
 import { inngest } from "../inngest/index.js";
+import sendEmail from "../configs/nodemailer.js";
 
 // create task 
 export const createTask = async (req, res)=>{

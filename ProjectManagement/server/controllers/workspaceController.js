@@ -1,4 +1,5 @@
 import prisma from "../configs/prisma.js";
+import sendEmail from "../configs/nodemailer.js";
 
 // get all workspaces the logged-in user is a member of
 export const getUserWorkspaces = async (req, res) => {

@@ -1,5 +1,7 @@
 // create project
 import prisma from "../configs/prisma.js";
+import sendEmail from "../configs/nodemailer.js";
+
 export const createProject = async (req, res)=>{
     try{
          const{userId} = await req.auth();

@@ -11,10 +11,11 @@ import taskRouter from './routes/taskRoutes.js'
 import commentRouter from './routes/commentRoutes.js'
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors({
-    origin: ['https://project-management-la97.vercel.app', 'http://localhost:3000'], // Add your local dev URL if needed
+    origin: ['https://project-management-la97.vercel.app', `http://localhost:${PORT}`], // Add your local dev URL if needed
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -34,8 +35,6 @@ app.use("/api/projects", protect, projectRouter)
 app.use('/api/tasks',protect, taskRouter)
 app.use('/api/comments', protect, commentRouter)
 
-
-const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {

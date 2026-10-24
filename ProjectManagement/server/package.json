@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "server": "nodemon server.js",
-    "postinstall": "node node_modules/prisma/build/index.js generate"
-  },
+ "scripts": {
+  "start": "node server.js",
+  "server": "nodemon server.js",
+  "build": "prisma generate",
+  "vercel-build": "prisma generate",
+  "postinstall": "prisma generate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

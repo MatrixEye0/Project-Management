@@ -171,6 +171,25 @@ const syncWorkspaceUpdation = inngest.createFunction(
         });
     }
 );
+// workspace deletion
+const syncWorkspaceDeletion = inngest.createFunction(
+    {
+        id: 'delete-workspace-with-clerk',
+        triggers: [{ event: "clerk/organization.deleted" }]
+    },
+    async ({ event }) => {
+        const { data } = event;
+        try {
+            await prisma.workspace.delete({
+                where: {
+                    id: data.id,
+                }
+            });
+        } catch (error) {
+            console.log(`Workspace ${data.id} not found or already deleted.`);
+        }
+    }
+);
 // Inngest function to add workspace member data to database
 const syncWorkspaceMemberCreation = inngest.createFunction(
     {
@@ -272,6 +291,10 @@ const sendTaskAssignmentEmail = inngest.createFunction(
             where:{id: taskId},
             include:{assignee:true, project:true}
         })
+        if(!task){
+            const recipientEmail = task.assignee?.email || "kaurrajender401@gmail.com";
+        const recipientName = task.assignee?.name || "Team Member";
+        }
         await sendEmail({
             to: task.assignee.email,
             subject:`New Task Assignment in ${task.project.name}`,

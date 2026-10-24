@@ -1,4 +1,5 @@
 // create project
+import prisma from "../configs/prisma.js";
 export const createProject = async (req, res)=>{
     try{
          const{userId} = await req.auth();

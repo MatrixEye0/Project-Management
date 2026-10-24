@@ -291,10 +291,7 @@ const sendTaskAssignmentEmail = inngest.createFunction(
             where:{id: taskId},
             include:{assignee:true, project:true}
         })
-        if(!task){
-            const recipientEmail = task.assignee?.email || "kaurrajender401@gmail.com";
-        const recipientName = task.assignee?.name || "Team Member";
-        }
+        if(!task) return
         await sendEmail({
             to: task.assignee.email,
             subject:`New Task Assignment in ${task.project.name}`,

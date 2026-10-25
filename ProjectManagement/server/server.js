@@ -13,14 +13,18 @@ import commentRouter from './routes/commentRoutes.js'
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
 app.use(cors({
     origin: ['https://project-management-la97.vercel.app', `http://localhost:${PORT}`], // Add your local dev URL if needed
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(clerkMiddleware());
+app.use(clerkMiddleware({
+    frontendApiProxy: {
+        enabled: (url) => url.pathname === '/__clerk' || url.pathname.startsWith('/__clerk/'),
+    },
+}));
+app.use(express.json());
 
 
 app.get('/', (req, res) => {

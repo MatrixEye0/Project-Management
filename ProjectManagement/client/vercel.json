@@ -1,6 +1,14 @@
   {
     "rewrites": [
       {
+        "source": "/__clerk/(.*)",
+        "destination": "https://project-management-omega-coral.vercel.app/__clerk/$1"
+      },
+      {
+        "source": "/__clerk",
+        "destination": "https://project-management-omega-coral.vercel.app/__clerk"
+      },
+      {
         "source": "/(.*)",
         "destination": "/"
       }

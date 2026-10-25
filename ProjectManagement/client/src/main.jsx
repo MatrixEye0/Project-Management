@@ -8,7 +8,7 @@ import { ClerkProvider } from '@clerk/clerk-react'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 const CLERK_PROXY_URL = import.meta.env.PROD
-    ? 'https://project-management-la97.vercel.app/__clerk/'
+    ? 'https://project-management-la97.vercel.app/__clerk'
     : undefined
 
 if (!PUBLISHABLE_KEY) {
